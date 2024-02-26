@@ -4,7 +4,7 @@
 
 baseimage="ubuntu:jammy"
 
-while getopts ":v:p:c:d:u:h" opt; do
+while getopts ":v:p:c:d:b:u:h" opt; do
     case $opt in
         v) version=$OPTARG;;
         p) package=$OPTARG;;
