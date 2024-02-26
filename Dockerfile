@@ -34,7 +34,7 @@ RUN set -x \
 
 #WORKDIR /deb-build-fpm/
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
-RUN ${INSTALL_CMD}
+RUN bash -c "${INSTALL_CMD}"
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
 RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
 RUN tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
