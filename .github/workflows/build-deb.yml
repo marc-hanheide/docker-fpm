@@ -1,6 +1,6 @@
 name: Build Deb Package from Install Command
 
-run-name: FPM Deb Builder ${{ github.event.inputs.package }}-${{ github.event.inputs.version }} `date`
+run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.inputs.version }} ${{ github.event.sender.login }}
 
 on:
   workflow_dispatch:
