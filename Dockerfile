@@ -26,6 +26,7 @@ RUN set -x \
 FROM prepare as install
 ARG INSTALL_CMD
 ARG PACKAGE_NAME
+ARG DEBIAN_DEPS
 
 RUN set -x \
 	&& apt-get update && apt-get install -y --no-install-recommends \
