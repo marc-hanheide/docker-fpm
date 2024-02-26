@@ -35,8 +35,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: set workflow run name
-      run: echo "##[set-output name=workflow_run_name;] FPM Deb Builder ${{ github.event.inputs.package }}-${{ github.event.inputs.version }} `date`"
     - name: Build it
       run: |
         ls ${GITHUB_WORKSPACE}
