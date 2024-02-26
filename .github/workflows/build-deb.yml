@@ -34,7 +34,8 @@ jobs:
 
     - name: Build it
       run: |
-        ./make-deb.sh \
+        ls ${GITHUB_WORKSPACE}
+        ${GITHUB_WORKSPACE}/make-deb.sh \
           -v ${{ github.event.inputs.version }} \
           -c ${{ github.event.inputs.command }} \
           -d ${{ github.event.inputs.deps }} \
