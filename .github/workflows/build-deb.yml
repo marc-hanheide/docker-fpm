@@ -37,11 +37,11 @@ jobs:
         ls ${GITHUB_WORKSPACE}
         cd ${GITHUB_WORKSPACE}
         ${GITHUB_WORKSPACE}/make-deb.sh \
-          -v ${{ github.event.inputs.version }} \
-          -c ${{ github.event.inputs.command }} \
-          -d ${{ github.event.inputs.deps }} \
-          -b ${{ github.event.inputs.baseimage }} \
-          -p ${{ github.event.inputs.package }}
+          -v "${{ github.event.inputs.version }}" \
+          -c "${{ github.event.inputs.command }}" \
+          -d "${{ github.event.inputs.deps }}" \
+          -b "${{ github.event.inputs.baseimage }}" \
+          -p "${{ github.event.inputs.package }}"
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ github.event.inputs.package }}-${{ github.event.inputs.version }}.deb
