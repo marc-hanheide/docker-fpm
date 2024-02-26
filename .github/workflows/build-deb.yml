@@ -1,0 +1,46 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'package to generate'
+        required: true
+        default: "foo"
+      version:
+        description: 'version to build (e.g. 0.0.1)'
+        required: true
+        default: "0.0.1"
+      command:
+        description: 'command to build the package'
+        required: true
+        default: "touch /etc/FOO"
+      deps:
+        description: 'Ubuntu dependencies for package'
+        required: true
+        default: ""
+      baseimage:
+        description: 'Base image for package'
+        required: true
+        default: "ubuntu:jammy"
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build it
+      run: |
+        make-deb.sh \
+          -v ${{ github.event.inputs.version }} \
+          -c ${{ github.event.inputs.command }} \
+          -d ${{ github.event.inputs.deps }} \
+          -b ${{ github.event.inputs.baseimage }} \
+          -p ${{ github.event.inputs.package }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ github.event.inputs.package }}-${{ github.event.inputs.version }}.deb
+        path: ./output/*.deb

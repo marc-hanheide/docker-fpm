@@ -7,8 +7,6 @@ ARG MAINTAINER="L-CAS <mhanheide@lincoln.ac.uk>"
 
 
 FROM $BASE_IMAGE as prepare
-ARG DEBIAN_DEPS
-
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -22,13 +20,16 @@ RUN set -x \
 		ca-certificates \
 		libffi-dev \
 		ruby-ffi \
-        ${DEBIAN_DEPS} \
 	&& gem install fpm \
 	&& mkdir /deb-build-fpm /docker-fpm
 
 FROM prepare as install
 ARG INSTALL_CMD
 ARG PACKAGE_NAME
+
+RUN set -x \
+	&& apt-get update && apt-get install -y --no-install-recommends \
+        ${DEBIAN_DEPS}
 
 #WORKDIR /deb-build-fpm/
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt

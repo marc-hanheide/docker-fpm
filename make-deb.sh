@@ -35,11 +35,15 @@ fi
 # ./make-deb.sh -v 0.0.1 -p mypackage -c mycommand
 mkdir -p output
 
+image_name="fpm_build_debian_${package}_${version}_`date +%s`"
+
 docker build \
     --build-arg VERSION="$version" \
     --build-arg DEBIAN_DEPS="$deps" \
     --build-arg INSTALL_CMD="$command" \
     --build-arg PACKAGE_NAME="$package" \
     --build-arg BASE_IMAGE="$baseimage" \
-    --progress=plain -t fpm . && docker run -v `pwd`/output:/output --rm fpm
+    --progress=plain -t $image_name . && \
+  docker run -v `pwd`/output:/output --rm $image_name && \
+  docker rmi $image_name
 
