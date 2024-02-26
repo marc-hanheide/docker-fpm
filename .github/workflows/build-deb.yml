@@ -18,7 +18,7 @@ on:
       deps:
         description: 'Ubuntu dependencies for package'
         required: true
-        default: ""
+        default: "coreutils"
       baseimage:
         description: 'Base image for package'
         required: true
@@ -34,7 +34,7 @@ jobs:
 
     - name: Build it
       run: |
-        make-deb.sh \
+        ./make-deb.sh \
           -v ${{ github.event.inputs.version }} \
           -c ${{ github.event.inputs.command }} \
           -d ${{ github.event.inputs.deps }} \
