@@ -6,7 +6,7 @@ install: |
   cd /building/zenoh-plugin-ros2dds
   bash -c "source '$HOME/.cargo/env'; cargo build --release -p zenoh-bridge-ros2dds"
   install target/release/zenoh-bridge-ros2dds /usr/local/bin/
-
+  rm -rf /building $HOME/.cargo
 package: zenoh-bridge-ros2dds
 maintainer: "Marc Hanheide <marc@hanheide.net>"
 version: 0.2.5
