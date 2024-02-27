@@ -5,8 +5,8 @@ run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.in
 on:
   workflow_dispatch:
     inputs:
-      uoload_to_aptly:
-        description: 'upload to Aptly'
+      upload_to_aptly:
+        description: 'upload to Aptly?'
         type: 'boolean'
         required: true
         default: "false"
@@ -53,7 +53,7 @@ jobs:
         name: ${{ github.event.inputs.package }}-${{ github.event.inputs.version }}.deb
         path: ./output/*.deb
     - name: "upload to Aptly repo and make available at staging"
-      if: ${{ github.event.inputs.upload_to_aptly == 'true' }}
+      if: ${{ github.event.inputs.upload_to_aptly }}
       run: |
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
         folder=`mktemp -u tmp.XXXXXXXXXXXXXXX`
