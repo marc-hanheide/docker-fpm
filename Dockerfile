@@ -135,7 +135,7 @@ RUN source /deb-build-fpm/setup.bash; echo -n "" > /deb-build-fpm/deps.txt; for 
 
 RUN echo "::group::build deb package"
 #RUN source /deb-build-fpm/setup.bash; echo fpm -s tar -m "${MAINTAINER}" -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
-RUN source /deb-build-fpm/setup.bash; fpm -s tar --after-install ./ldconfig.sh -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
+RUN source /deb-build-fpm/setup.bash; fpm -s tar --after-remove ./ldconfig.sh --after-install ./ldconfig.sh -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN echo "::endgroup::"
 
 # Stage 5: Test the installation
