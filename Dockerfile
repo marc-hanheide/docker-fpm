@@ -79,17 +79,16 @@ RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
         export BASE_IMAGE=$(yq eval '.baseimage' /deb-build-fpm/config.yaml); \
     else \
       echo "Running in shell mode, taking commands as verbatim"; \
-    fi;\
-
-# Create setup.bash file with environment variables
-RUN echo -n "" > /deb-build-fpm/setup.bash; \
-    echo "BASE_IMAGE=${BASE_IMAGE}" >> /deb-build-fpm/setup.bash; \
-    echo "DEBIAN_DEPS='${DEBIAN_DEPS}'" >> /deb-build-fpm/setup.bash; \
-    echo "INSTALL_CMD='${INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
-    echo "PACKAGE_NAME='${PACKAGE_NAME}'" >> /deb-build-fpm/setup.bash; \
-    echo "VERSION='${VERSION}'" >> /deb-build-fpm/setup.bash; \
-    echo "MAINTAINER='${MAINTAINER}'" >> /deb-build-fpm/setup.bash; \
-    echo "BASE_IMAGE='${BASE_IMAGE}'" >> /deb-build-fpm/setup.bash;
+    fi; \
+    # Create setup.bash file with environment variables
+    echo -n "" > /deb-build-fpm/setup.bash; \
+        echo "BASE_IMAGE=${BASE_IMAGE}" >> /deb-build-fpm/setup.bash; \
+        echo "DEBIAN_DEPS='${DEBIAN_DEPS}'" >> /deb-build-fpm/setup.bash; \
+        echo "INSTALL_CMD='${INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
+        echo "PACKAGE_NAME='${PACKAGE_NAME}'" >> /deb-build-fpm/setup.bash; \
+        echo "VERSION='${VERSION}'" >> /deb-build-fpm/setup.bash; \
+        echo "MAINTAINER='${MAINTAINER}'" >> /deb-build-fpm/setup.bash; \
+        echo "BASE_IMAGE='${BASE_IMAGE}'" >> /deb-build-fpm/setup.bash;
 
 RUN cat /deb-build-fpm/setup.bash
 RUN echo "::endgroup::"
@@ -129,13 +128,14 @@ FROM setup as build
 COPY --from=install /deb-build-fpm /deb-build-fpm
 
 WORKDIR /deb-build-fpm
+COPY ./ldconfig.sh /deb-build-fpm/ldconfig.sh
 
 # Create deps.txt file with dependency information
 RUN source /deb-build-fpm/setup.bash; echo -n "" > /deb-build-fpm/deps.txt; for dep in ${DEBIAN_DEPS}; do echo " -d $dep" >> /deb-build-fpm/deps.txt; done
 
 RUN echo "::group::build deb package"
-RUN source /deb-build-fpm/setup.bash; echo fpm -s tar -m "${MAINTAINER}" -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
-RUN source /deb-build-fpm/setup.bash; fpm -s tar -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
+#RUN source /deb-build-fpm/setup.bash; echo fpm -s tar -m "${MAINTAINER}" -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
+RUN source /deb-build-fpm/setup.bash; fpm -s tar --after-install ./ldconfig.sh -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN echo "::endgroup::"
 
 # Stage 5: Test the installation
