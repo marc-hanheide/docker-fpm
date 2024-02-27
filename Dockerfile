@@ -141,6 +141,7 @@ RUN echo "::endgroup::"
 # Stage 5: Test the installation
 FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
+ENV DEBIAN_FRONTEND noninteractive
 RUN echo "::group::test install"
 RUN apt-get update && apt-get install -y /deb-build-fpm/*.deb
 RUN echo "::endgroup::"
