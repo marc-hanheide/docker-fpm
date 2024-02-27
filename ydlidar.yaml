@@ -1,0 +1,35 @@
+install: |
+  set -xe
+  echo "Hello, world!"
+  git clone https://github.com/YDLIDAR/YDLidar-SDK.git && git -C ./YDLidar-SDK checkout b73fe49eafde0b5e8e09c2c747db2d9e5f79c4f8 &&  mkdir -p YDLidar-SDK/build &&     cd YDLidar-SDK/build &&    cmake ..&&    make &&    make install &&    cd .. &&    pip install . &&    cd .. && rm -r YDLidar-SDK 
+  echo "Goodbye."
+package: ydlidar-sdk
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 1.2.0
+dependencies:
+  - build-essential
+  - cmake
+  - git
+  - libssl-dev
+  - libusb-1.0-0-dev
+  - libusb-1.0-0
+  - pkg-config
+  - libgtk-3-dev
+  - libglfw3-dev
+  - libgl1-mesa-dev
+  - libglu1-mesa-dev
+  - libglvnd0
+  - libglx0
+  - libegl1
+  - libxext6
+  - libx11-6
+  - curl
+  - udev
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - swig
+  - python3-pip
+  - wget
+  - git
+  - python3-dev

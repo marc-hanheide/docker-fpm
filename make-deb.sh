@@ -38,7 +38,7 @@ else
     if echo "$command" | grep -q "^http"; then
         echo "Using URL config file: $command"
     else
-        if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ] || [ -z "$deps" ]; then
+        if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ]; then
             usage
         fi  
     fi
