@@ -2,9 +2,12 @@ install: |
   echo "Hello, world!"
   touch /etc/FOO
   echo "Goodbye."
+preinstall: |
+  echo "This is a preinstall script"
+  touch /etc/FOO-preinstall
+  echo "Goodbye."
 package: foo
 maintainer: "Marc Hanheide <marc@hanheide.net>"
 version: 0.0.2
 dependencies:
-  - build-essential
-  - git
+  #- build-essential

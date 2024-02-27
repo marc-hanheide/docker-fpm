@@ -1,0 +1,72 @@
+name: Build changed yaml files
+
+run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.inputs.version }} for ${{ github.event.inputs.baseimage }} invoked by @${{ github.actor }}
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '*.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - '*.yaml'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: AutoModality/action-clean@v1
+    - uses: actions/checkout@v3
+    - uses: jitterbit/get-changed-files@v1
+      id: changed_files
+    - run: |
+        echo "Added or modified files: ${{ steps.changed_files.outputs.added_modified }}"
+        echo "Removed files: ${{ steps.changed_files.outputs.removed }}"
+        for file in ${{ steps.changed_files.outputs.added_modified }}; do
+          echo "Building $file"
+          cd ${GITHUB_WORKSPACE}
+          ${GITHUB_WORKSPACE}/make-deb.sh -c "file://$file"
+        done
+    - uses: actions/upload-artifact@v2
+      with:
+        name: generated Deb packages
+        path: ./output/*.deb
+    - name: "upload to Aptly repo and make available at staging"
+      if: ${{ github.event != 'pull_request' }}
+      run: |
+        APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
+        folder=`mktemp -u tmp.XXXXXXXXXXXXXXX`
+        repo=lcas_ros
+        files=`find ${{ github.workspace }}/output -name "*.deb"`
+        echo "::group::upload to Aptly"
+        for f in $files; do
+          echo "Uploading $f..."
+          curl -fsS -X POST -F "file=@$f" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/files/$folder
+        done
+        echo "updating repo with files in $folder"
+        curl -fsS -X POST -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/repos/$repo/file/$folder
+        echo "Updating published staging repo..."
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/${{ github.event.inputs.baseimage }}"
+        echo "::endgroup::"
+        - name: "list all outputs"
+        run: |
+          echo "::group::All outputs"
+          ls -lR ${{ github.workspace }}/output
+          echo "::endgroup::"
+    - name: "copy from staging to lcas"
+      run: |
+        APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
+        repo=lcas_ros
+        echo "::group::copy from staging to lcas"
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/${{ github.event.inputs.baseimage }}
+    - name: "list packages"
+      run: |
+        echo "::group::Packages in lcas/amd64"
+        curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /'
+        echo "::endgroup::"
+           

@@ -47,6 +47,7 @@ FROM prepare as setup
 ARG BASE_IMAGE
 ARG DEBIAN_DEPS
 ARG INSTALL_CMD
+ARG PRE_INSTALL_CMD
 ARG PACKAGE_NAME
 ARG VERSION
 ARG MAINTAINER
@@ -59,6 +60,7 @@ ENV INSTALL_CMD=${INSTALL_CMD}
 ENV PACKAGE_NAME=${PACKAGE_NAME}
 ENV VERSION=${VERSION}
 ENV MAINTAINER=${MAINTAINER}
+ENV PRE_INSTALL_CMD=${PRE_INSTALL_CMD}
 SHELL ["/bin/bash", "-c"]
 
 # Add skipcache file to prevent caching
@@ -66,19 +68,31 @@ ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" /.skipcache
 
 RUN echo "::group::setup"
 
+RUN mkdir /tmp/configs
+
+# copy all yaml files into the container so that `file//` works
+COPY *.yaml /tmp/configs
+
 # Check if INSTALL_CMD is a URL, if yes, run in YAML mode
-RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
-      echo "URL provided, running in YAML mode"; \
-      wget -O /deb-build-fpm/config.yaml "${INSTALL_CMD}"; \
-        yq eval '.install' /deb-build-fpm/config.yaml > /deb-build-fpm/install.sh; \
+RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
+        echo "URL provided, running in YAML mode"; \
+        if echo ${INSTALL_CMD} | grep -q '^http'; then \
+            wget -O /deb-build-fpm/config.yaml "${INSTALL_CMD}"; \
+        else \
+            filename="/tmp/configs/$(echo ${INSTALL_CMD} | sed 's@^file://@@')"; \
+            cp -v "${filename}" /deb-build-fpm/config.yaml; \
+        fi; \
+        yq -e '.install' /deb-build-fpm/config.yaml > /deb-build-fpm/install.sh; \
+        yq -e eval '.preinstall' /deb-build-fpm/config.yaml > /deb-build-fpm/pre-install.sh || echo "true" > /deb-build-fpm/pre-install.sh ; \
         export INSTALL_CMD="bash /deb-build-fpm/install.sh"; \
-        export DEBIAN_DEPS=$(yq eval '.dependencies[]' /deb-build-fpm/config.yaml | tr "\n" " "); \
-        export PACKAGE_NAME=$(yq eval '.package' /deb-build-fpm/config.yaml); \
-        export VERSION=$(yq eval '.version' /deb-build-fpm/config.yaml); \
+        export PRE_INSTALL_CMD="bash /deb-build-fpm/pre-install.sh"; \
+        export DEBIAN_DEPS=$(yq -e eval '.dependencies[]' /deb-build-fpm/config.yaml | tr "\n" " "); \
+        export PACKAGE_NAME=$(yq -e eval '.package' /deb-build-fpm/config.yaml); \
+        export VERSION=$(yq -e eval '.version' /deb-build-fpm/config.yaml); \
         export MAINTAINER=$(yq eval '.maintainer' /deb-build-fpm/config.yaml); \
         export BASE_IMAGE=$(yq eval '.baseimage' /deb-build-fpm/config.yaml); \
     else \
-      echo "Running in shell mode, taking commands as verbatim"; \
+        echo "Running in shell mode, taking commands as verbatim"; \
     fi; \
     # Create setup.bash file with environment variables
     echo -n "" > /deb-build-fpm/setup.bash; \
@@ -88,6 +102,7 @@ RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
         echo "PACKAGE_NAME='${PACKAGE_NAME}'" >> /deb-build-fpm/setup.bash; \
         echo "VERSION='${VERSION}'" >> /deb-build-fpm/setup.bash; \
         echo "MAINTAINER='${MAINTAINER}'" >> /deb-build-fpm/setup.bash; \
+        echo "PRE_INSTALL_CMD='${PRE_INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
         echo "BASE_IMAGE='${BASE_IMAGE}'" >> /deb-build-fpm/setup.bash;
 
 RUN cat /deb-build-fpm/setup.bash
@@ -104,16 +119,25 @@ RUN set -x; \
         ${DEBIAN_DEPS}
 RUN echo "::endgroup::"
 
+RUN echo "::group::pre-install command"
+RUN mkdir /tmp/build-package
+WORKDIR /tmp/build-package
+RUN source /deb-build-fpm/setup.bash; echo "run ${PRE_INSTALL_CMD}"
+RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${PRE_INSTALL_CMD}"
+RUN echo "::endgroup::"
+
 # Calculate checksum of files before running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
 
 RUN echo "::group::run command"
-RUN source /deb-build-fpm/setup.bash; echo "${INSTALL_CMD}"
+RUN source /deb-build-fpm/setup.bash; echo "run ${INSTALL_CMD}"
 RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${INSTALL_CMD}"
 RUN echo "::endgroup::"
 
+RUN rm -rf /tmp/build-package
+
 # Calculate checksum of files after running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
 
 # Find the changes made by the command and save them to changes.txt
 RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt

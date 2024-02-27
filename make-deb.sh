@@ -7,7 +7,7 @@ function usage() {
     echo "Options:"  >&2
     echo "  -v <version>   Set the version (e.g. 0.0.1), not needed with URL config" >&2
     echo "  -p <package>   Set the package name, not needed with URL config" >&2    
-    echo "  -c <command>   Set the command to run OR the URL to a YAML config file" >&2
+    echo "  -c <command>   Set the command to run OR the URL to a YAML config file (http or file, where a file ahs to a yaml file in the current directory)" >&2
     echo "  -b <image_tag> Docker baseimage to use (default: ubuntu:jammy), not needed with URL config" >&2
     echo "  -d <deps>      declare the ubuntu package dependencies, not needed with URL config" >&2
     exit 1
@@ -35,7 +35,7 @@ done
 if [ -z "$command" ]; then
     usage
 else  
-    if echo "$command" | grep -q "^http"; then
+    if echo "$command" | grep -q "^http\|^file:"; then
         echo "Using URL config file: $command"
     else
         if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ]; then
