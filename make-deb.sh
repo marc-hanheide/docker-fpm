@@ -2,6 +2,19 @@
 
 # add command line flag processing
 
+function usage() {
+    echo "Usage: `basename $0` -c <URL to YAML config file> or `basename $0` -v <version> -p <package> -c <command> -d <deps>" >&2
+    echo "Options:"  >&2
+    echo "  -v <version>   Set the version (e.g. 0.0.1), not needed with URL config" >&2
+    echo "  -p <package>   Set the package name, not needed with URL config" >&2    
+    echo "  -c <command>   Set the command to run OR the URL to a YAML config file" >&2
+    echo "  -b <image_tag> Docker baseimage to use (default: ubuntu:jammy), not needed with URL config" >&2
+    echo "  -d <deps>      declare the ubuntu package dependencies, not needed with URL config" >&2
+    exit 1
+}
+
+
+
 baseimage="ubuntu:jammy"
 
 while getopts ":v:p:c:d:b:u:h" opt; do
@@ -11,31 +24,31 @@ while getopts ":v:p:c:d:b:u:h" opt; do
         c) command=$OPTARG;;
         b) baseimage=$OPTARG;;
         d) deps=$OPTARG;;
-        h) echo "Usage: ./make-deb.sh -v <version> -p <package> -c <command> -d <deps>"
-           echo "Options:"
-           echo "  -v <version>   Set the version (e.g. 0.0.1)"
-           echo "  -p <package>   Set the package name"
-           echo "  -c <command>   Set the command to run"
-           echo "  -b <image_tag> Docker baseimage to use (default: ubuntu:jammy)"
-           echo "  -d <deps>      declare the ubuntu package dependencies"
-           exit;;
+        h) usage;;
         \?) echo "Invalid option -$OPTARG" >&2;;
     esac
 done
 
-# if $command or $version or $package is empty, then print usage and exit
-if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ] || [ -z "$deps" ]; then
-    echo "Usage:     `basename $0` -v <version> -p <package> -c <command> -d <deps>"
-    echo "  Example: `basename $0` -v 0.0.1 -p camdriver -c \"cmake . && make\" -d \"libusb-1.0-0-dev,libudev-dev\""
-    exit
-fi  
 
+
+# if $command or $version or $package is empty, then print usage and exit
+if [ -z "$command" ]; then
+    usage
+else  
+    if echo "$command" | grep -q "^http"; then
+        echo "Using URL config file: $command"
+    else
+        if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ] || [ -z "$deps" ]; then
+            usage
+        fi  
+    fi
+fi
 
 # Usage example:
 # ./make-deb.sh -v 0.0.1 -p mypackage -c mycommand
 mkdir -p output
 
-image_name="fpm_build_debian_${package}_${version}_`date +%s`"
+image_name="fpm_build_debian_${USER}_`date +%s`"
 
 docker build \
     --build-arg VERSION="$version" \

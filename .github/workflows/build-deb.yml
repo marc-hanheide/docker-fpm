@@ -7,20 +7,20 @@ on:
     inputs:
       package:
         description: 'package to generate'
-        required: true
-        default: "foo"
+        required: false
+        default: ""
       version:
         description: 'version to build (e.g. 0.0.1)'
-        required: true
-        default: "0.0.1"
+        required: false
+        default: ""
       command:
-        description: 'command to build the package'
+        description: 'command to build the package, or the URL to download a YAML config file from'
         required: true
-        default: "touch /etc/FOO"
+        default: "https://raw.githubusercontent.com/LCAS/docker-fpm/main/test.yaml"
       deps:
         description: 'Ubuntu dependencies for package'
-        required: true
-        default: "coreutils"
+        required: false
+        default: ""
       baseimage:
         description: 'Base image for package'
         required: true
