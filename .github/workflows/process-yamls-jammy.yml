@@ -52,7 +52,7 @@ jobs:
         echo "updating repo with files in $folder"
         curl -fsS -X POST -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/repos/$repo/file/$folder
         echo "Updating published staging repo..."
-        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/${{ github.event.inputs.baseimage }}"
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/jammy
         echo "::endgroup::"
         - name: "list all outputs"
         run: |
@@ -64,7 +64,7 @@ jobs:
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
         repo=lcas_ros
         echo "::group::copy from staging to lcas"
-        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/${{ github.event.inputs.baseimage }}
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/jammy
     - name: "list packages"
       run: |
         echo "::group::Packages in lcas/amd64"
