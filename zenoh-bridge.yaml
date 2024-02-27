@@ -2,6 +2,7 @@ install: |
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
   git clone --depth 1 https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds.git
   cd zenoh-plugin-ros2dds
+  
   bash -c "source '$HOME/.cargo/env'; cargo build --release -p zenoh-bridge-ros2dds"
   install target/release/zenoh-bridge-ros2dds /usr/local/bin/
   rm -rf zenoh-plugin-ros2dds $HOME/.cargo
