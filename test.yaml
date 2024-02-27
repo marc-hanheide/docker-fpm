@@ -1,1 +1,10 @@
-ydlidar.yaml
+install: |
+  echo "Hello, world!"
+  touch /etc/FOO
+  echo "Goodbye."
+package: foo
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 0.0.2
+dependencies:
+  - build-essential
+  - git
