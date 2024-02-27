@@ -105,7 +105,7 @@ RUN set -x; \
 RUN echo "::endgroup::"
 
 # Calculate checksum of files before running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
 
 RUN echo "::group::run command"
 RUN source /deb-build-fpm/setup.bash; echo "${INSTALL_CMD}"
@@ -113,7 +113,7 @@ RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${INSTALL_CMD}"
 RUN echo "::endgroup::"
 
 # Calculate checksum of files after running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
 
 # Find the changes made by the command and save them to changes.txt
 RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
