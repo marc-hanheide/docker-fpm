@@ -1,6 +1,6 @@
 name: Build Deb Package from Install Command
 
-run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.inputs.version }} ${{ github.event.sender.login }}
+run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.inputs.version }} for ${{ github.event.inputs.baseimage }} invoked by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -40,7 +40,6 @@ jobs:
 
     - name: Build it
       run: |
-        ls ${GITHUB_WORKSPACE}
         cd ${GITHUB_WORKSPACE}
         ${GITHUB_WORKSPACE}/make-deb.sh \
           -v "${{ github.event.inputs.version }}" \
@@ -63,7 +62,21 @@ jobs:
           echo "Uploading $f..."
           curl -fsS -X POST -F "file=@$f" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/files/$folder
         done
+        echo "::group::upload to Aptly"
         echo "updating repo with files in $folder"
         curl -fsS -X POST -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/repos/$repo/file/$folder
         echo "Updating published staging repo..."
         curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/${{ github.event.inputs.baseimage }}"
+        echo "::endgroup::"
+    - name: "copy from staging to lcas"
+      run: |
+        APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
+        repo=lcas_ros
+        echo "::group::copy from staging to lcas"
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/${{ github.event.inputs.baseimage }}
+    - name: "list packages"
+      run: |
+        echo "::group::Packages in lcas/amd64"
+        curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /'
+        echo "::endgroup::"
+   
