@@ -1,3 +1,4 @@
+# Define build arguments
 ARG BASE_IMAGE=ubuntu:jammy
 ARG DEBIAN_DEPS="coreutils"
 ARG INSTALL_CMD="https://raw.githubusercontent.com/LCAS/docker-fpm/main/test.yaml"
@@ -5,10 +6,24 @@ ARG PACKAGE_NAME="foo"
 ARG VERSION="0.0.1"
 ARG MAINTAINER="L-CAS <mhanheide@lincoln.ac.uk>"
 
-
+# Stage 1: Prepare the environment
 FROM $BASE_IMAGE as prepare
 RUN echo "::group::prepare"
 
+# Install necessary dependencies
+RUN set -x \
+	&& apt-get update && apt-get install -y --no-install-recommends \
+    curl  lsb-release curl software-properties-common apt-transport-https ca-certificates gnupg2
+
+# Add ROS and LCAS repositories
+RUN sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
+
+RUN sh -c 'echo "deb https://lcas.lincoln.ac.uk/apt/lcas $(lsb_release -sc) lcas" > /etc/apt/sources.list.d/lcas-latest.list' && \
+    sh -c 'echo "deb https://lcas.lincoln.ac.uk/apt/staging $(lsb_release -sc) lcas" > /etc/apt/sources.list.d/lcas-staging.list' && \
+    curl -s https://lcas.lincoln.ac.uk/apt/repo_signing.gpg | apt-key add -
+
+# Install additional dependencies
 RUN set -x \
 	&& apt-get update && apt-get install -y --no-install-recommends \
 		ruby \
@@ -22,10 +37,12 @@ RUN set -x \
         wget \
 	&& gem install fpm \
 	&& mkdir /deb-build-fpm /docker-fpm
+
+# Download yq binary
 RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq &&    chmod +x /usr/bin/yq
 RUN echo "::endgroup::"
 
-
+# Stage 2: Setup the environment
 FROM prepare as setup
 ARG BASE_IMAGE
 ARG DEBIAN_DEPS
@@ -34,6 +51,7 @@ ARG PACKAGE_NAME
 ARG VERSION
 ARG MAINTAINER
 
+# Set environment variables
 ENV DEBIAN_FRONTEND noninteractive
 ENV BASE_IMAGE=${BASE_IMAGE}
 ENV DEBIAN_DEPS=${DEBIAN_DEPS}
@@ -43,9 +61,12 @@ ENV VERSION=${VERSION}
 ENV MAINTAINER=${MAINTAINER}
 SHELL ["/bin/bash", "-c"]
 
+# Add skipcache file to prevent caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" /.skipcache
+
 RUN echo "::group::setup"
 
+# Check if INSTALL_CMD is a URL, if yes, run in YAML mode
 RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
       echo "URL provided, running in YAML mode"; \
       wget -O /deb-build-fpm/config.yaml "${INSTALL_CMD}"; \
@@ -59,7 +80,9 @@ RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
     else \
       echo "Running in shell mode, taking commands as verbatim"; \
     fi;\
-    echo -n "" > /deb-build-fpm/setup.bash; \
+
+# Create setup.bash file with environment variables
+RUN echo -n "" > /deb-build-fpm/setup.bash; \
     echo "BASE_IMAGE=${BASE_IMAGE}" >> /deb-build-fpm/setup.bash; \
     echo "DEBIAN_DEPS='${DEBIAN_DEPS}'" >> /deb-build-fpm/setup.bash; \
     echo "INSTALL_CMD='${INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
@@ -71,6 +94,7 @@ RUN if echo ${INSTALL_CMD} | grep -q '^http'; then \
 RUN cat /deb-build-fpm/setup.bash
 RUN echo "::endgroup::"
 
+# Stage 3: Install dependencies
 FROM setup as install
 
 RUN echo "::group::install dependencies"
@@ -81,7 +105,7 @@ RUN set -x; \
         ${DEBIAN_DEPS}
 RUN echo "::endgroup::"
 
-#WORKDIR /deb-build-fpm/
+# Calculate checksum of files before running the command
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
 
 RUN echo "::group::run command"
@@ -89,31 +113,41 @@ RUN source /deb-build-fpm/setup.bash; echo "${INSTALL_CMD}"
 RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${INSTALL_CMD}"
 RUN echo "::endgroup::"
 
+# Calculate checksum of files after running the command
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
+
+# Find the changes made by the command and save them to changes.txt
 RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
+
+# Create a tarball of the changes
 RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
 
+# Stage 4: Build the final image
 FROM setup as build
 
-#RUN gem install fpm
+# Copy the deb-build-fpm directory from the install stage
 COPY --from=install /deb-build-fpm /deb-build-fpm
+
 WORKDIR /deb-build-fpm
+
+# Create deps.txt file with dependency information
 RUN source /deb-build-fpm/setup.bash; echo -n "" > /deb-build-fpm/deps.txt; for dep in ${DEBIAN_DEPS}; do echo " -d $dep" >> /deb-build-fpm/deps.txt; done
+
 RUN echo "::group::build deb package"
 RUN source /deb-build-fpm/setup.bash; echo fpm -s tar -m "${MAINTAINER}" -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN source /deb-build-fpm/setup.bash; fpm -s tar -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN echo "::endgroup::"
 
-
+# Stage 5: Test the installation
 FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
 RUN echo "::group::test install"
 RUN apt-get update && apt-get install -y /deb-build-fpm/*.deb
 RUN echo "::endgroup::"
 
+# Stage 6: Create the final image
 FROM test as final
 COPY --from=build /deb-build-fpm /deb-build-fpm
 CMD echo "::group::show all outputs"; ls /deb-build-fpm; cp -v /deb-build-fpm/* /output; echo "::endgroup::"
 
 #ENTRYPOINT /docker-fpm/scan-dirs.sh
-
