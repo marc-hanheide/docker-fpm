@@ -36,6 +36,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: asilbek99/action-cleanup@v1.0
     - uses: actions/checkout@v3
 
     - name: Build it
