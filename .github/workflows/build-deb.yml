@@ -5,6 +5,11 @@ run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.in
 on:
   workflow_dispatch:
     inputs:
+      uoload_to_aptly:
+        description: 'upload to Aptly'
+        type: 'boolean'
+        required: true
+        default: "false"
       package:
         description: 'package to generate'
         required: false
@@ -22,15 +27,13 @@ on:
         required: false
         default: ""
       baseimage:
-        description: 'Base image for package'
+        description: 'Ubuntu release for package'
         required: true
-        default: "ubuntu:jammy"
+        default: "jammy"
 jobs:
 
   build:
-
     runs-on: ubuntu-latest
-
 
     steps:
     - uses: actions/checkout@v3
@@ -43,9 +46,24 @@ jobs:
           -v "${{ github.event.inputs.version }}" \
           -c "${{ github.event.inputs.command }}" \
           -d "${{ github.event.inputs.deps }}" \
-          -b "${{ github.event.inputs.baseimage }}" \
+          -b "ubuntu:${{ github.event.inputs.baseimage }}" \
           -p "${{ github.event.inputs.package }}"
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ github.event.inputs.package }}-${{ github.event.inputs.version }}.deb
         path: ./output/*.deb
+    - name: "upload to Aptly repo and make available at staging"
+      if: ${{ github.event.inputs.upload_to_aptly == 'true' }}
+      run: |
+        APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
+        folder=`mktemp -u tmp.XXXXXXXXXXXXXXX`
+        repo=lcas_ros
+        files=`find ${{ github.workspace }}/output -name "*.deb"`
+        for f in $files; do
+          echo "Uploading $f..."
+          curl -fsS -X POST -F "file=@$f" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/files/$folder
+        done
+        echo "updating repo with files in $folder"
+        curl -fsS -X POST -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/repos/$repo/file/$folder
+        echo "Updating published staging repo..."
+        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/${{ github.event.inputs.baseimage }}"
