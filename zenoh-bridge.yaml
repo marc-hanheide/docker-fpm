@@ -1,0 +1,19 @@
+install: |
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
+  mkdir /building
+  git clone https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds.git
+  cd /building/zenoh-plugin-ros2dds
+  bash -c "source '$HOME/.cargo/env'; cargo build --release -p zenoh-bridge-ros2dds"
+  install target/release/zenoh-bridge-ros2dds /usr/local/bin/
+
+package: zenoh-bridge-ros2dds
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 0.2.5
+dependencies:
+  - build-essential
+  - cmake
+  - gcovr
+  - libgflags-dev
+  - libunwind-dev
+  - ninja-build
+  - curl
