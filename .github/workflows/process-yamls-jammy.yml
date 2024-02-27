@@ -1,6 +1,6 @@
 name: Build changed yaml files
 
-run-name: FPM Deb Builder ${{ github.event.inputs.package }} ${{ github.event.inputs.version }} for ${{ github.event.inputs.baseimage }} invoked by @${{ github.actor }}
+run-name: Autobuild Debs for all changed yaml configs ${{ github.event.action }} invoked by @${{ github.actor }}
 
 on:
   pull_request:
@@ -39,7 +39,11 @@ jobs:
         echo "::group::All outputs"
         ls -lR ${{ github.workspace }}/output
         echo "::endgroup::"
-  
+
+        echo "::group::All changes"
+        cat ${{ github.workspace }}/output/changes.txt
+        echo "::endgroup::"
+
     - uses: actions/upload-artifact@v2
       with:
         name: generated Deb packages

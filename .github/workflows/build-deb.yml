@@ -74,6 +74,11 @@ jobs:
         echo "::group::All outputs"
         ls -lR ${{ github.workspace }}/output
         echo "::endgroup::"
+
+        echo "::group::All changes"
+        cat ${{ github.workspace }}/output/changes.txt
+        echo "::endgroup::"
+
     - name: "copy from staging to lcas"
       run: |
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
