@@ -69,6 +69,11 @@ jobs:
         echo "Updating published staging repo..."
         curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/${{ github.event.inputs.baseimage }}"
         echo "::endgroup::"
+    - name: "list all outputs"
+      run: |
+        echo "::group::All outputs"
+        ls -lR ${{ github.workspace }}/output
+        echo "::endgroup::"
     - name: "copy from staging to lcas"
       run: |
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
