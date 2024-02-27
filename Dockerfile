@@ -95,7 +95,6 @@ RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tg
 
 FROM setup as build
 
-RUN echo "::group::build deb package"
 #RUN gem install fpm
 COPY --from=install /deb-build-fpm /deb-build-fpm
 WORKDIR /deb-build-fpm
@@ -114,7 +113,7 @@ RUN echo "::endgroup::"
 
 FROM test as final
 COPY --from=build /deb-build-fpm /deb-build-fpm
-CMD ls /deb-build-fpm; cp -v /deb-build-fpm/* /output
+CMD echo "::group::show all outputs"; ls /deb-build-fpm; cp -v /deb-build-fpm/* /output; echo "::endgroup::"
 
 #ENTRYPOINT /docker-fpm/scan-dirs.sh
 
