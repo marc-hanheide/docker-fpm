@@ -17,3 +17,4 @@ dependencies:
   - libunwind-dev
   - ninja-build
   - curl
+  - git
