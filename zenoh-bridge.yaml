@@ -18,3 +18,5 @@ dependencies:
   - ninja-build
   - curl
   - git
+  - llvm-dev
+  - libclang-dev
