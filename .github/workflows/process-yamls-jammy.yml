@@ -45,12 +45,12 @@ jobs:
         echo "::endgroup::"
 
     - uses: actions/upload-artifact@v2
-      if: ${{ github.event != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' }}
       with:
         name: generated Deb packages
         path: ./output/*.deb
     - name: "upload to Aptly repo and make available at staging"
-      if: ${{ github.event != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' }}
       run: |
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
         folder=`mktemp -u tmp.XXXXXXXXXXXXXXX`
@@ -67,14 +67,14 @@ jobs:
         curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/jammy"
         echo "::endgroup::"
     - name: "copy from staging to lcas"
-      if: ${{ github.event != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' }}
       run: |
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
         repo=lcas_ros
         echo "::group::copy from staging to lcas"
         curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/jammy
     - name: "list packages"
-      if: ${{ github.event != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' }}
       run: |
         echo "::group::Packages in lcas/amd64"
         curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /'
