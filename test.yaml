@@ -1,0 +1,16 @@
+install: |
+  echo "Hello, world!"
+  echo "This is a test."
+  echo "This is only a test."
+  echo "This is a test of the emergency broadcast system."
+  echo "If this had been an actual emergency, you would have been instructed where to tune in your area for news and official information."
+  echo "This concludes this test of the emergency broadcast system."
+  echo "Goodbye."
+package: foo
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 0.0.2
+baseimage: ubuntu:jammy
+dependencies: 
+  - coreutils
+  - bash
+
