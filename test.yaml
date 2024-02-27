@@ -1,7 +1,7 @@
 install: |
   echo "Hello, world!"
   touch /etc/FOO
-  echo "Goodbye again."
+  echo "Goodbye."
 preinstall: |
   echo "This is a preinstall script"
   touch /etc/FOO-preinstall
