@@ -55,10 +55,17 @@ jobs:
         echo "::endgroup::"
 
     - uses: actions/upload-artifact@v2
-      if: ${{ github.event_name != 'pull_request' }}
       with:
-        name: generated Deb packages
-        path: ./output/*.deb
+        name: generated logs and Deb packages
+        path: |
+          ./output/*.deb
+          ./output/*.txt
+          ./output/*.yaml
+          ./output/*.sh
+          ./output/*.bash
+          ./output/*.tgz
+          ./output/*.log
+        retention-days: 3
     - name: "upload to Aptly repo and make available at staging"
       if: ${{ github.event_name != 'pull_request' }}
       run: |
