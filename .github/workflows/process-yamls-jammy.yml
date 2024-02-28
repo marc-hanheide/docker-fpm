@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "Added or modified files: ${{ steps.changed_files.outputs.added_modified }}"
         echo "Removed files: ${{ steps.changed_files.outputs.removed }}"
-        echo "## Processing changed `.yaml` files" >> $GITHUB_STEP_SUMMARY
+        echo '## Processing changed `.yaml` files' >> $GITHUB_STEP_SUMMARY
         for file in ${{ steps.changed_files.outputs.added_modified }}; do
           if [ ${file: -5} != ".yaml" ]; then
             echo "Skipping $file as not a .yaml file."
@@ -53,9 +53,13 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
         echo '## All Changes' >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        cat ${{ github.workspace }}/output/changes.txt  >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+        if [ -f ${{ github.workspace }}/output/changes.txt ]; then
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat ${{ github.workspace }}/output/changes.txt  >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "No changes computed in this run." >> $GITHUB_STEP_SUMMARY
+        fi
 
     - uses: actions/upload-artifact@v2
       with:
