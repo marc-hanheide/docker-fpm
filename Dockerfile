@@ -117,7 +117,7 @@ RUN echo "::endgroup::"
 # Stage 3: Install dependencies
 FROM prepare as install
 
-COPY --from=setup /deb-build-fpm /deb-build-fpm
+COPY --from=setup /deb-build-fpm /
 
 RUN echo "::group::install dependencies"
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -158,7 +158,7 @@ RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tg
 FROM setup as build
 
 # Copy the deb-build-fpm directory from the install stage
-COPY --from=install /deb-build-fpm /deb-build-fpm
+COPY --from=install /deb-build-fpm /
 
 WORKDIR /deb-build-fpm
 COPY ./ldconfig.sh /deb-build-fpm/ldconfig.sh
