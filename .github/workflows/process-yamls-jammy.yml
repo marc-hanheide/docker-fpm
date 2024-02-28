@@ -28,6 +28,7 @@ jobs:
       run: |
         echo "Added or modified files: ${{ steps.changed_files.outputs.added_modified }}"
         echo "Removed files: ${{ steps.changed_files.outputs.removed }}"
+        echo "# Processing changed `.yaml` files" >> $GITHUB_STEP_SUMMARY
         for file in ${{ steps.changed_files.outputs.added_modified }}; do
           if [ ${file: -5} != ".yaml" ]; then
             echo "Skipping $file as not a .yaml file."
@@ -38,21 +39,23 @@ jobs:
             echo "Skipping $file as not in ./ dir."
             continue
           fi
-
-          echo "Building $file"
+          echo "## Building $file" >> $GITHUB_STEP_SUMMARY
           cd ${GITHUB_WORKSPACE}
           ${GITHUB_WORKSPACE}/make-deb.sh -c "file://$file"
         done
 
     - name: "list all outputs"
+      if: '!cancelled()'
       run: |
-        echo "::group::All outputs"
-        ls -lR ${{ github.workspace }}/output
-        echo "::endgroup::"
+        echo "## All Outputs" >> $GITHUB_STEP_SUMMARY
+        echo "```" >> $GITHUB_STEP_SUMMARY
+        ls -lR ${{ github.workspace }}/output >> $GITHUB_STEP_SUMMARY
+        echo "```" >> $GITHUB_STEP_SUMMARY
 
-        echo "::group::All changes"
-        cat ${{ github.workspace }}/output/changes.txt
-        echo "::endgroup::"
+        echo "## All Changes" >> $GITHUB_STEP_SUMMARY
+        echo "```" >> $GITHUB_STEP_SUMMARY
+        cat ${{ github.workspace }}/output/changes.txt 
+        echo "```" >> $GITHUB_STEP_SUMMARY
 
     - uses: actions/upload-artifact@v2
       with:
