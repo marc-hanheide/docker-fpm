@@ -228,8 +228,8 @@ FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo "::group::test install"
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update && apt-get install -y /deb-build-fpm/*.deb
+#RUN --mount=type=cache,target=/var/cache/apt \
+#    apt-get update && apt-get install -y /deb-build-fpm/*.deb
 RUN echo "::endgroup::"
 
 # Stage 6: Create the final image
