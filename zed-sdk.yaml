@@ -1,0 +1,11 @@
+install: | 
+  ./zsdk.run -- silent skip_cuda skip_hub skip_tools && rm zsdk.run
+preinstall: |
+  apt-get install zstd wget
+  wget -O zsdk.run "https://download.stereolabs.com/zedsdk/4.0/cu118/ubuntu22?_gl=1*1vjm5ia*_gcl_au*MzczMjkwODMzLjE3MDkxMTI0MTU."
+  chmod +x zsdk.run
+package: zed-sdk-cu118
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 4.0.8
+dependencies:
+  - build-essential
