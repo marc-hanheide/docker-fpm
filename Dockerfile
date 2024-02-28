@@ -131,7 +131,7 @@ RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${PRE_INSTALL_CMD}"
 RUN echo "::endgroup::"
 
 # Calculate checksum of files before running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -o type l -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
 
 RUN echo "::group::run command"
 RUN source /deb-build-fpm/setup.bash; echo "run ${INSTALL_CMD}"
@@ -141,10 +141,10 @@ RUN echo "::endgroup::"
 RUN rm -rf /tmp/build-package
 
 # Calculate checksum of files after running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
+RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -o type l -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
 
 # Find the changes made by the command and save them to changes.txt
-RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
+RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep -v '/var/cache' | grep -v '/var/log' | grep -v '/etc/ld.so.cache$' || grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
 
 # Create a tarball of the changes
 RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
@@ -171,7 +171,7 @@ FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo "::group::test install"
-#RUN apt-get update && apt-get install -y /deb-build-fpm/*.deb
+RUN apt-get update && apt-get install -y /deb-build-fpm/*.deb
 RUN echo "::endgroup::"
 
 # Stage 6: Create the final image
