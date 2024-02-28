@@ -107,7 +107,7 @@ RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
         echo "MAINTAINER='${MAINTAINER}'" >> /deb-build-fpm/setup.bash; \
         echo "PRE_INSTALL_CMD='${PRE_INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
         echo "BASE_IMAGE='${BASE_IMAGE}'" >> /deb-build-fpm/setup.bash; \
-        echo "DESCRIPTION='${DESCRIPTION}'" >> /deb-build-fpm/setup.bash; \
+        echo "DESCRIPTION='${DESCRIPTION}'" >> /deb-build-fpm/setup.bash;
 
 RUN cat /deb-build-fpm/setup.bash
 RUN echo "::endgroup::"
