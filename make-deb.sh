@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # add command line flag processing
 
 function usage() {
@@ -37,6 +39,8 @@ if [ -z "$command" ]; then
 else  
     if echo "$command" | grep -q "^http\|^file:"; then
         echo "Using URL config file: $command"
+        image_name=`echo "$command" | sed 's/[^a-zA-Z0-9]/-/g'`
+        image_name="fpm_build_debian_${image_name}"
     else
         if [ -z "$command" ] || [ -z "$version" ] || [ -z "$package" ]; then
             usage
@@ -48,7 +52,7 @@ fi
 # ./make-deb.sh -v 0.0.1 -p mypackage -c mycommand
 mkdir -p output
 
-image_name="fpm_build_debian_${USER}_`date +%s`"
+image_name=${image_name:-"fpm_build_debian_${package}_${version}"}
 
 docker build \
     --build-arg VERSION="$version" \
@@ -56,8 +60,11 @@ docker build \
     --build-arg INSTALL_CMD="$command" \
     --build-arg PACKAGE_NAME="$package" \
     --build-arg BASE_IMAGE="$baseimage" \
-    --progress=plain -t $image_name . 2>&1 | sed 's/^#[0-9 \.]*::\([a-z]*\)group\(.*\)/::\1group\2/' \
+    --progress=plain -t lcas.lincoln.ac.uk/lcas/$image_name . 2>&1  | tee `pwd`/output/build-${image_name}.log \
+        | sed 's/^#[0-9 \.]*::\(.*\)::\(.*\)/::\1::\2/' \
     && \
-  docker run -v `pwd`/output:/output --rm $image_name && \
-  docker rmi $image_name
+  docker run -v `pwd`/output:/output --rm lcas.lincoln.ac.uk/lcas/$image_name
+  #docker rmi $image_name
 
+
+        #| sed 's/^#[0-9 \.]*::\([a-z]*\)group\(.*\)/::\1group\2/'
