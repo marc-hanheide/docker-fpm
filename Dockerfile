@@ -5,9 +5,13 @@ ARG INSTALL_CMD="https://raw.githubusercontent.com/LCAS/docker-fpm/main/test.yam
 ARG PACKAGE_NAME="foo"
 ARG VERSION="0.0.1"
 ARG MAINTAINER="L-CAS <mhanheide@lincoln.ac.uk>"
+ARG DESCRIPTION="an undocumented package"
+ARG ALSO_CHANGED_FILES="false"
 
+#### STAGE: prepare ##############################################################################
 # Stage 1: Prepare the environment
 FROM $BASE_IMAGE as prepare
+ENV DEBIAN_FRONTEND noninteractive
 RUN echo "::group::prepare"
 
 # Install necessary dependencies
@@ -44,6 +48,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
 RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq &&    chmod +x /usr/bin/yq
 RUN echo "::endgroup::"
 
+#### STAGE: setup ##############################################################################
 # Stage 2: Setup the environment
 FROM prepare as setup
 ARG BASE_IMAGE
@@ -54,6 +59,7 @@ ARG PACKAGE_NAME
 ARG VERSION
 ARG MAINTAINER
 ARG DESCRIPTION
+ARG ALSO_CHANGED_FILES
 
 # Set environment variables
 ENV DEBIAN_FRONTEND noninteractive
@@ -65,6 +71,7 @@ ENV VERSION=${VERSION}
 ENV MAINTAINER=${MAINTAINER}
 ENV PRE_INSTALL_CMD=${PRE_INSTALL_CMD}
 ENV DESCRIPTION=${DESCRIPTION}
+ENV ALSO_CHANGED_FILES=${ALSO_CHANGED_FILES}
 SHELL ["/bin/bash", "-c"]
 
 # Add skipcache file to prevent caching
@@ -86,8 +93,10 @@ RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
             filename="/tmp/configs/$(echo ${INSTALL_CMD} | sed 's@^file://@@')"; \
             cp -v "${filename}" /deb-build-fpm/config.yaml; \
         fi; \
-        yq -e '.install' /deb-build-fpm/config.yaml > /deb-build-fpm/install.sh; \
-        yq -e eval '.preinstall' /deb-build-fpm/config.yaml > /deb-build-fpm/pre-install.sh || echo "true" > /deb-build-fpm/pre-install.sh ; \
+        echo "set -x -e" > /deb-build-fpm/install.sh; \
+        yq -e '.install' /deb-build-fpm/config.yaml >> /deb-build-fpm/install.sh; \
+        echo "set -x -e" > /deb-build-fpm/pre-install.sh; \
+        yq -e eval '.preinstall' /deb-build-fpm/config.yaml >> /deb-build-fpm/pre-install.sh || echo "true" >> /deb-build-fpm/pre-install.sh ; \
         export INSTALL_CMD="bash /deb-build-fpm/install.sh"; \
         export PRE_INSTALL_CMD="bash /deb-build-fpm/pre-install.sh"; \
         export DEBIAN_DEPS=$(yq -e eval '.dependencies[]' /deb-build-fpm/config.yaml | tr "\n" " "); \
@@ -96,6 +105,7 @@ RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
         export VERSION=$(yq -e eval '.version' /deb-build-fpm/config.yaml); \
         export MAINTAINER=$(yq eval '.maintainer // "no maintainer <noreply@nowhere.org>"' /deb-build-fpm/config.yaml); \
         export BASE_IMAGE=$(yq eval '.baseimage // "ubuntu:jammy"' /deb-build-fpm/config.yaml); \
+        export ALSO_CHANGED_FILES=$(yq eval '.also_changed_files // "false"' /deb-build-fpm/config.yaml); \
     else \
         echo "Running in shell mode, taking commands as verbatim"; \
     fi; \
@@ -109,16 +119,19 @@ RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
         echo "MAINTAINER='${MAINTAINER}'" >> /deb-build-fpm/setup.bash; \
         echo "PRE_INSTALL_CMD='${PRE_INSTALL_CMD}'" >> /deb-build-fpm/setup.bash; \
         echo "BASE_IMAGE='${BASE_IMAGE}'" >> /deb-build-fpm/setup.bash; \
-        echo "DESCRIPTION='${DESCRIPTION}'" >> /deb-build-fpm/setup.bash;
+        echo "DESCRIPTION='${DESCRIPTION}'" >> /deb-build-fpm/setup.bash; \
+        echo "ALSO_CHANGED_FILES='${ALSO_CHANGED_FILES}'" >> /deb-build-fpm/setup.bash;
 
 RUN cat /deb-build-fpm/setup.bash
 RUN echo "::endgroup::"
 
-# Stage 3: Install dependencies
+#### STAGE: install ##############################################################################
+# Stage 3: Install the package (incl dependencies)
 FROM prepare as install
+SHELL ["/bin/bash", "-c"]
 
 COPY --from=setup /deb-build-fpm/* /deb-build-fpm/
-RUN ls -l /deb-build-fpm /
+#RUN ls -l /deb-build-fpm /
 
 RUN echo "::group::install dependencies"
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -137,7 +150,14 @@ RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${PRE_INSTALL_CMD}"
 RUN echo "::endgroup::"
 
 # Calculate checksum of files before running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt
+RUN source /deb-build-fpm/setup.bash; \
+    if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
+        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt; \
+    else \
+        find \
+            `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
+        -type f > /deb-build-fpm/A.txt; \
+    fi
 
 RUN echo "::group::run command"
 RUN source /deb-build-fpm/setup.bash; echo "run ${INSTALL_CMD}"
@@ -147,14 +167,41 @@ RUN echo "::endgroup::"
 RUN rm -rf /tmp/build-package
 
 # Calculate checksum of files after running the command
-RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
+RUN source /deb-build-fpm/setup.bash; \
+    if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
+        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt; \
+    else \
+        find \
+            `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
+        -type f > /deb-build-fpm/B.txt; \
+    fi
 
 # Find the changes made by the command and save them to changes.txt
-RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep -v '/var/cache' | grep -v '/var/log' | grep -v '/etc/ld.so.cache$' || grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
+RUN source /deb-build-fpm/setup.bash; \
+    if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
+        IFS='\n'; \
+        diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt \
+            | grep -v '/deb-build-fpm/A.txt$' \
+            | grep -v '/deb-build-fpm/B.txt$' \
+            | grep -v '/var/cache' \
+            | grep -v '/var/log' \
+            | grep -v '/etc/ld.so.cache$' \
+            | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt; \
+    else \
+        IFS='\n'; \
+        diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt \
+            | grep -v '/deb-build-fpm/A.txt$' \
+            | grep -v '/deb-build-fpm/B.txt$' \
+            | grep -v '/var/cache' \
+            | grep -v '/var/log' \
+            | grep -v '/etc/ld.so.cache$' \
+            | grep '^> ' | sed 's/^> //'  > /deb-build-fpm/changes.txt; \
+    fi
 
 # Create a tarball of the changes
 RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
 
+#### STAGE: Build the Debian package via FPM ##################################################
 # Stage 4: Build the final image
 FROM setup as build
 
