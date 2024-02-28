@@ -1,0 +1,13 @@
+install: |
+  echo "export ROSDISTRO_INDEX_URL=https://raw.github.com/LCAS/rosdistro/master/index-v4.yaml" > /etc/profile.d/90-lcas-rosdistro-index.sh
+preinstall: |
+  echo "nothing to be done"
+package: lcas-rosdistro-index
+maintainer: "Marc Hanheide <marc@hanheide.net>"
+version: 0.0.1
+description: |
+  configure the LCAS specific ROS Distro Index to be used for all users as default.
+  
+  See https://github.com/LCAS/rosdistro/wiki#one-time-setup-in-a-users-account-for-a-developer for details.
+dependencies:
+  - bash
