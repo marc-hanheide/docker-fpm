@@ -4,7 +4,6 @@ install: |
   echo "Goodbye."
 preinstall: |
   echo "This is a preinstall script"
-  touch /etc/FOO-preinstall
   echo "Goodbye."
 package: foo
 maintainer: "Marc Hanheide <marc@hanheide.net>"

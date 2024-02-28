@@ -1,6 +1,6 @@
 name: Build changed yaml files
 
-run-name: Autobuild Debs for all changed yaml configs ${{ github.event.action }} invoked by @${{ github.actor }}
+run-name: Autobuild Debs for all changed yaml configs, triggered by event ${{ github.event.action }} by @${{ github.actor }}.
 
 on:
   pull_request:
@@ -29,6 +29,16 @@ jobs:
         echo "Added or modified files: ${{ steps.changed_files.outputs.added_modified }}"
         echo "Removed files: ${{ steps.changed_files.outputs.removed }}"
         for file in ${{ steps.changed_files.outputs.added_modified }}; do
+          if [ ${file: -5} != ".yaml" ]; then
+            echo "Skipping $file as not a .yaml file."
+            continue
+          fi
+
+          if [ `dirname $file` != "." ]; then
+            echo "Skipping $file as not in ./ dir."
+            continue
+          fi
+
           echo "Building $file"
           cd ${GITHUB_WORKSPACE}
           ${GITHUB_WORKSPACE}/make-deb.sh -c "file://$file"
