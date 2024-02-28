@@ -176,7 +176,7 @@ RUN source /deb-build-fpm/setup.bash; \
     fi
 
 # Find the changes made by the command and save them to changes.txt
-RUN source /deb-build-fpm/setup.bash; \
+RUN source /deb-build-fpm/setup.bash; set -x -e;\
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
         IFS='\n'; \
         diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt \
@@ -198,7 +198,12 @@ RUN source /deb-build-fpm/setup.bash; \
     fi
 
 # Create a tarball of the changes
+RUN echo "::group::create tarball"; \
+    echo "Files to go into tarball:"; \
+    cat /deb-build-fpm/changes.txt
+
 RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
+RUN echo "::endgroup::"
 
 #### STAGE: Build the Debian package via FPM ##################################################
 # Stage 4: Build the final image
