@@ -11,7 +11,8 @@ FROM $BASE_IMAGE as prepare
 RUN echo "::group::prepare"
 
 # Install necessary dependencies
-RUN set -x \
+RUN --mount=type=cache,target=/var/cache/apt \
+    set -x \
 	&& apt-get update && apt-get install -y --no-install-recommends \
     curl  lsb-release curl software-properties-common apt-transport-https ca-certificates gnupg2
 
@@ -24,7 +25,8 @@ RUN sh -c 'echo "deb https://lcas.lincoln.ac.uk/apt/lcas $(lsb_release -sc) lcas
     curl -s https://lcas.lincoln.ac.uk/apt/repo_signing.gpg | apt-key add -
 
 # Install additional dependencies
-RUN set -x \
+RUN --mount=type=cache,target=/var/cache/apt \
+    set -x \
 	&& apt-get update && apt-get install -y --no-install-recommends \
 		ruby \
 		ruby-dev \
@@ -113,10 +115,13 @@ RUN cat /deb-build-fpm/setup.bash
 RUN echo "::endgroup::"
 
 # Stage 3: Install dependencies
-FROM setup as install
+FROM prepare as install
+
+COPY --from=setup /deb-build-fpm /deb-build-fpm
 
 RUN echo "::group::install dependencies"
-RUN set -x; \
+RUN --mount=type=cache,target=/var/cache/apt \
+    set -x; \
     source /deb-build-fpm/setup.bash; \
 	apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -171,7 +176,8 @@ FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo "::group::test install"
-RUN apt-get update && apt-get install -y /deb-build-fpm/*.deb
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y /deb-build-fpm/*.deb
 RUN echo "::endgroup::"
 
 # Stage 6: Create the final image
