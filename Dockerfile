@@ -151,11 +151,11 @@ RUN echo "::endgroup::"
 # Calculate checksum of files before running the command
 RUN source /deb-build-fpm/setup.bash; \
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
-        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/A.txt; \
+        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f | sort | xargs -d '\n' md5sum > /deb-build-fpm/A.txt; \
     else \
         find \
             `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
-        -type f > /deb-build-fpm/A.txt; \
+        -type f | sort > /deb-build-fpm/A.txt; \
     fi
 
 RUN echo "::group::run command"
@@ -168,11 +168,11 @@ RUN rm -rf /tmp/build-package
 # Calculate checksum of files after running the command
 RUN source /deb-build-fpm/setup.bash; \
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
-        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt; \
+        find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f | sort | xargs -d '\n' md5sum > /deb-build-fpm/B.txt; \
     else \
         find \
             `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
-        -type f > /deb-build-fpm/B.txt; \
+        -type f | sort > /deb-build-fpm/B.txt; \
     fi
 
 # Find the changes made by the command and save them to changes.txt
