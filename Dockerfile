@@ -116,7 +116,7 @@ RUN echo "::endgroup::"
 
 # Stage 3: Install dependencies
 FROM prepare as install
-
+SHELL ["/bin/bash", "-c"]
 COPY --from=setup /deb-build-fpm/* /deb-build-fpm/
 RUN ls -l /deb-build-fpm /
 
@@ -157,7 +157,7 @@ RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tg
 
 # Stage 4: Build the final image
 FROM setup as build
-
+SHELL ["/bin/bash", "-c"]
 # Copy the deb-build-fpm directory from the install stage
 COPY --from=install /deb-build-fpm/* /deb-build-fpm/
 
