@@ -150,7 +150,7 @@ RUN rm -rf /tmp/build-package
 RUN find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f -print0 | xargs -0 md5sum > /deb-build-fpm/B.txt
 
 # Find the changes made by the command and save them to changes.txt
-RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep -v '/var/cache' | grep -v '/var/log' | grep -v '/etc/ld.so.cache$' || grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
+RUN IFS='\n' diff /deb-build-fpm/A.txt /deb-build-fpm/B.txt | grep -v '/deb-build-fpm/A.txt$' | grep -v '/deb-build-fpm/B.txt$' | grep -v '/var/cache' | grep -v '/var/log' | grep -v '/etc/ld.so.cache$' | grep '^> ' | cut -f4 -d" " > /deb-build-fpm/changes.txt
 
 # Create a tarball of the changes
 RUN source /deb-build-fpm/setup.bash; tar -czf /deb-build-fpm/${PACKAGE_NAME}.tgz --files-from - < /deb-build-fpm/changes.txt
