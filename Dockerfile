@@ -74,10 +74,9 @@ ENV DESCRIPTION=${DESCRIPTION}
 ENV ALSO_CHANGED_FILES=${ALSO_CHANGED_FILES}
 SHELL ["/bin/bash", "-c"]
 
+RUN echo "::group::setup"
 # Add skipcache file to prevent caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" /.skipcache
-
-RUN echo "::group::setup"
 
 RUN mkdir /tmp/configs
 
@@ -129,10 +128,10 @@ RUN echo "::endgroup::"
 # Stage 3: Install the package (incl dependencies)
 FROM prepare as install
 SHELL ["/bin/bash", "-c"]
+RUN echo "::group::install dependencies"
 COPY --from=setup /deb-build-fpm/* /deb-build-fpm/
 #RUN ls -l /deb-build-fpm /
 
-RUN echo "::group::install dependencies"
 RUN --mount=type=cache,target=/var/cache/apt \
     set -x; \
     source /deb-build-fpm/setup.bash; \
@@ -148,7 +147,7 @@ RUN source /deb-build-fpm/setup.bash; echo "run ${PRE_INSTALL_CMD}"
 RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${PRE_INSTALL_CMD}"
 RUN echo "::endgroup::"
 
-# Calculate checksum of files before running the command
+RUN echo "::group::find previously installed files"
 RUN source /deb-build-fpm/setup.bash; \
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
         find `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` -type f | sort | xargs -d '\n' md5sum > /deb-build-fpm/A.txt; \
@@ -157,14 +156,15 @@ RUN source /deb-build-fpm/setup.bash; \
             `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
         -type f | sort > /deb-build-fpm/A.txt; \
     fi
-
-RUN echo "::group::run command"
-RUN source /deb-build-fpm/setup.bash; echo "run ${INSTALL_CMD}"
-RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${INSTALL_CMD}"
 RUN echo "::endgroup::"
 
+RUN echo "::group::run install command"
+RUN source /deb-build-fpm/setup.bash; echo "run ${INSTALL_CMD}"
+RUN source /deb-build-fpm/setup.bash; bash -x -e -c "${INSTALL_CMD}"
 RUN rm -rf /tmp/build-package
+RUN echo "::endgroup::"
 
+RUN echo "::group::find now installed files"
 # Calculate checksum of files after running the command
 RUN source /deb-build-fpm/setup.bash; \
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
@@ -174,7 +174,9 @@ RUN source /deb-build-fpm/setup.bash; \
             `find / -maxdepth 1 -mindepth 1 -type d | grep -v "/proc" | grep -v  "/boot"| grep -v  "/sys" | grep -v  "/dev" | grep -v  "/root" | grep -v  "/deb-build-fpm" | grep -v  "/tmp"` \
         -type f | sort > /deb-build-fpm/B.txt; \
     fi
+RUN echo "::endgroup::"
 
+RUN echo "::group::find diff between installed files"
 # Find the changes made by the command and save them to changes.txt
 RUN source /deb-build-fpm/setup.bash; set -x -e;\
     if [ "${ALSO_CHANGED_FILES}" == "true" ]; then \
@@ -196,7 +198,9 @@ RUN source /deb-build-fpm/setup.bash; set -x -e;\
             | grep -v '/etc/ld.so.cache$' \
             | grep '^> ' | sed 's/^> //'  > /deb-build-fpm/changes.txt; \
     fi
+RUN echo "::endgroup::"
 
+RUN echo "::group::create tar ball"
 # Create a tarball of the changes
 RUN echo "::group::create tarball"; \
     echo "Files to go into tarball:"; \
@@ -210,6 +214,7 @@ RUN echo "::endgroup::"
 FROM setup as build
 SHELL ["/bin/bash", "-c"]
 # Copy the deb-build-fpm directory from the install stage
+RUN echo "::group::build deb package"
 COPY --from=install /deb-build-fpm/* /deb-build-fpm/
 
 WORKDIR /deb-build-fpm
@@ -218,7 +223,6 @@ COPY ./ldconfig.sh /deb-build-fpm/ldconfig.sh
 # Create deps.txt file with dependency information
 RUN source /deb-build-fpm/setup.bash; echo -n "" > /deb-build-fpm/deps.txt; for dep in ${DEBIAN_DEPS}; do echo " -d $dep" >> /deb-build-fpm/deps.txt; done
 
-RUN echo "::group::build deb package"
 #RUN source /deb-build-fpm/setup.bash; echo fpm -s tar -m "${MAINTAINER}" -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN source /deb-build-fpm/setup.bash; fpm -s tar --description "${DESCRIPTION}" --after-remove ./ldconfig.sh --after-install ./ldconfig.sh -m "${MAINTAINER}" -n "${PACKAGE_NAME}" -f -v "${VERSION}" `cat /deb-build-fpm/deps.txt` -t deb   "/deb-build-fpm/${PACKAGE_NAME}.tgz"
 RUN echo "::endgroup::"
@@ -227,14 +231,14 @@ RUN echo "::endgroup::"
 FROM ${BASE_IMAGE} as test
 COPY --from=build /deb-build-fpm /deb-build-fpm
 ENV DEBIAN_FRONTEND noninteractive
-RUN echo "::group::test install"
-#RUN --mount=type=cache,target=/var/cache/apt \
-#    apt-get update && apt-get install -y /deb-build-fpm/*.deb
+RUN echo "::group::test install of package `ls /deb-build-fpm/*.deb`"
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y /deb-build-fpm/*.deb || echo "::error file=Dockerfile,line=238,title=Test::Test failed"
 RUN echo "::endgroup::"
 
 # Stage 6: Create the final image
 FROM test as final
 COPY --from=build /deb-build-fpm /deb-build-fpm
-CMD echo "::group::show all outputs"; ls /deb-build-fpm; cp -v /deb-build-fpm/* /output; echo "::endgroup::"
+CMD echo "::group::show all outputs"; ls /deb-build-fpm; cp /deb-build-fpm/* /output; echo "::endgroup::"
 
 #ENTRYPOINT /docker-fpm/scan-dirs.sh
