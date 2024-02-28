@@ -103,6 +103,6 @@ jobs:
       run: |
         echo "## List all packages on aptly" >> $GITHUB_STEP_SUMMARY
         echo "::group::Packages in lcas/amd64"
-        curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /' >> $GITHUB_STEP_SUMMARY
+        curl -s https://lcas.lincoln.ac.uk/apt/lcas/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /' >> $GITHUB_STEP_SUMMARY
         echo "::endgroup::"
            
