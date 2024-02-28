@@ -2,7 +2,11 @@
 
 This little tool uses [FPM](https://fpm.readthedocs.io/) and [Docker](https://www.docker.com/) to generate simple Debian packages from a set of commands that install the required software. It simple monitors which files have changed as a result of a set of bash commands and puts these into a `.deb` package.
 
-## Installation
+## Recommended Use: GitHub Action
+
+* simply open a PR with a new `.yaml` file like [`https://raw.githubusercontent.com/LCAS/docker-fpm/main/test.yaml`](https://raw.githubusercontent.com/LCAS/docker-fpm/main/test.yaml) will trigger the test build for a new Deb package. If PR is merged it's released.
+
+## Installation (on own computer, see above for recommended way)
 
 * Requirements: 
   * Docker
