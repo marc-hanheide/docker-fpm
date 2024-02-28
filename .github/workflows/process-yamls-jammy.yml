@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "Added or modified files: ${{ steps.changed_files.outputs.added_modified }}"
         echo "Removed files: ${{ steps.changed_files.outputs.removed }}"
-        echo "# Processing changed `.yaml` files" >> $GITHUB_STEP_SUMMARY
+        echo "## Processing changed `.yaml` files" >> $GITHUB_STEP_SUMMARY
         for file in ${{ steps.changed_files.outputs.added_modified }}; do
           if [ ${file: -5} != ".yaml" ]; then
             echo "Skipping $file as not a .yaml file."
@@ -39,7 +39,7 @@ jobs:
             echo "Skipping $file as not in ./ dir."
             continue
           fi
-          echo "## Building $file" >> $GITHUB_STEP_SUMMARY
+          echo "* Building $file" >> $GITHUB_STEP_SUMMARY
           cd ${GITHUB_WORKSPACE}
           ${GITHUB_WORKSPACE}/make-deb.sh -c "file://$file"
         done
@@ -47,15 +47,15 @@ jobs:
     - name: "list all outputs"
       if: '!cancelled()'
       run: |
-        echo "## All Outputs" >> $GITHUB_STEP_SUMMARY
-        echo "```" >> $GITHUB_STEP_SUMMARY
+        echo '## All Outputs' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
         ls -lR ${{ github.workspace }}/output >> $GITHUB_STEP_SUMMARY
-        echo "```" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
 
-        echo "## All Changes" >> $GITHUB_STEP_SUMMARY
-        echo "```" >> $GITHUB_STEP_SUMMARY
-        cat ${{ github.workspace }}/output/changes.txt 
-        echo "```" >> $GITHUB_STEP_SUMMARY
+        echo '## All Changes' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat ${{ github.workspace }}/output/changes.txt  >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
 
     - uses: actions/upload-artifact@v2
       with:
@@ -72,18 +72,19 @@ jobs:
     - name: "upload to Aptly repo and make available at staging"
       if: ${{ github.event_name != 'pull_request' }}
       run: |
+        echo "## Upload to Aptly" >> $GITHUB_STEP_SUMMARY
         APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
         folder=`mktemp -u tmp.XXXXXXXXXXXXXXX`
         repo=lcas_ros
         files=`find ${{ github.workspace }}/output -name "*.deb"`
         echo "::group::upload to Aptly"
         for f in $files; do
-          echo "Uploading $f..."
+          echo "* Uploading $f to Aptly" >> $GITHUB_STEP_SUMMARY
           curl -fsS -X POST -F "file=@$f" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/files/$folder
         done
-        echo "updating repo with files in $folder"
+        echo "updating repo with files in $folder" >> $GITHUB_STEP_SUMMARY
         curl -fsS -X POST -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/repos/$repo/file/$folder
-        echo "Updating published staging repo..."
+        echo "Updating published staging repo..." >> $GITHUB_STEP_SUMMARY
         curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} "$APTLY_API/publish/staging/jammy"
         echo "::endgroup::"
     - name: "copy from staging to lcas"
@@ -96,7 +97,8 @@ jobs:
     - name: "list packages"
       if: ${{ github.event_name != 'pull_request' }}
       run: |
+        echo "## List all packages on aptly" >> $GITHUB_STEP_SUMMARY
         echo "::group::Packages in lcas/amd64"
-        curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /'
+        curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /' >> $GITHUB_STEP_SUMMARY
         echo "::endgroup::"
            
