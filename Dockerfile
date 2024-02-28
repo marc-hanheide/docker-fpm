@@ -118,6 +118,7 @@ RUN echo "::endgroup::"
 FROM prepare as install
 
 COPY --from=setup /deb-build-fpm /
+RUN ls -l /deb-build-fpm /
 
 RUN echo "::group::install dependencies"
 RUN --mount=type=cache,target=/var/cache/apt \
