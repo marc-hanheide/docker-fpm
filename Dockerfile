@@ -200,7 +200,6 @@ RUN source /deb-build-fpm/setup.bash; set -x -e;\
     fi
 RUN echo "::endgroup::"
 
-RUN echo "::group::create tar ball"
 # Create a tarball of the changes
 RUN echo "::group::create tarball"; \
     echo "Files to go into tarball:"; \
@@ -214,8 +213,8 @@ RUN echo "::endgroup::"
 FROM setup as build
 SHELL ["/bin/bash", "-c"]
 # Copy the deb-build-fpm directory from the install stage
-RUN echo "::group::build deb package"
 COPY --from=install /deb-build-fpm/* /deb-build-fpm/
+RUN echo "::group::build deb package"
 
 WORKDIR /deb-build-fpm
 COPY ./ldconfig.sh /deb-build-fpm/ldconfig.sh
