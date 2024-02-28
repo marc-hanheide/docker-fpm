@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # add command line flag processing
 
 function usage() {
@@ -56,7 +58,7 @@ docker build \
     --build-arg INSTALL_CMD="$command" \
     --build-arg PACKAGE_NAME="$package" \
     --build-arg BASE_IMAGE="$baseimage" \
-    --progress=plain -t $image_name . 2>&1 | sed 's/^#[0-9 \.]*::\([a-z]*\)group\(.*\)/::\1group\2/' \
+    --progress=plain -t $image_name . 2>&1 | tee `pwd`/output/build-${image_name}.log | sed 's/^#[0-9 \.]*::\([a-z]*\)group\(.*\)/::\1group\2/'  \
     && \
   docker run -v `pwd`/output:/output --rm $image_name && \
   docker rmi $image_name

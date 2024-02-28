@@ -90,10 +90,10 @@ RUN set -xe; if echo ${INSTALL_CMD} | grep -q '^http\|^file:'; then \
         export PRE_INSTALL_CMD="bash /deb-build-fpm/pre-install.sh"; \
         export DEBIAN_DEPS=$(yq -e eval '.dependencies[]' /deb-build-fpm/config.yaml | tr "\n" " "); \
         export PACKAGE_NAME=$(yq -e eval '.package' /deb-build-fpm/config.yaml); \
-        export DESCRIPTION=$(yq -e eval '.description' /deb-build-fpm/config.yaml || echo "The ${PACKAGE_NAME} package."); \
+        export DESCRIPTION=$(yq -e eval ".description // \"The ${PACKAGE_NAME} package\"" /deb-build-fpm/config.yaml); \
         export VERSION=$(yq -e eval '.version' /deb-build-fpm/config.yaml); \
-        export MAINTAINER=$(yq -e eval '.maintainer' /deb-build-fpm/config.yaml || echo "no maintainer <noreply@nowhere.org>"); \
-        export BASE_IMAGE=$(yq eval -e '.baseimage' /deb-build-fpm/config.yaml || echo "ubuntu:jammy"); \
+        export MAINTAINER=$(yq eval '.maintainer // "no maintainer <noreply@nowhere.org>"' /deb-build-fpm/config.yaml); \
+        export BASE_IMAGE=$(yq eval '.baseimage // "ubuntu:jammy"' /deb-build-fpm/config.yaml); \
     else \
         echo "Running in shell mode, taking commands as verbatim"; \
     fi; \
