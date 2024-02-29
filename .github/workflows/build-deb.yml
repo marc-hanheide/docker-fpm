@@ -79,13 +79,13 @@ jobs:
         cat ${{ github.workspace }}/output/changes.txt
         echo "::endgroup::"
 
-    - name: "copy from staging to lcas"
-      run: |
-        APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
-        repo=lcas_ros
-        echo "::group::copy from staging to lcas"
-        curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/${{ github.event.inputs.baseimage }}
-    - name: "list packages"
+    # - name: "copy from staging to lcas"
+    #   run: |
+    #     APTLY_API="https://lcas.lincoln.ac.uk/apt/api"
+    #     repo=lcas_ros
+    #     echo "::group::copy from staging to lcas"
+    #     curl  -X PUT -H 'Content-Type: application/json' --data "{\"ForceOverwrite\": true, \"SourceKind\": \"local\", \"Sources\": [{\"Name\": \"$repo\"}]}" -u lcas:${{ secrets.APTLY_TOKEN }} $APTLY_API/publish/lcas/${{ github.event.inputs.baseimage }}
+    - name: "list packages in staging"
       run: |
         echo "::group::Packages in lcas/amd64"
         curl -s https://lcas.lincoln.ac.uk/apt/staging/dists/jammy/lcas/binary-amd64/Packages | grep  "^Package: \|^Version: " | sed 's/^Package: //' | sed 's/^Version: /  -> /'
