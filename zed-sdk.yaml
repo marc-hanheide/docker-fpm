@@ -176,3 +176,4 @@ dependencies:
   - ucf
   - xz-utils
   - udev
+  - cuda-11-8
